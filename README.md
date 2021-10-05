@@ -1,5 +1,6 @@
 # Ahm
 Ahm (ah-m) is a Discord Bot for my Destiny 2 clan that primarily gives roles. 
+
 Originally I only planned for Ahm to be used personally, but releasing something sounds neat so that'll be my first priority after testing.
 
 ## User Commands
