@@ -44,13 +44,8 @@ namespace Ahm.DiscordBot.Services
         {
             var dataVersionsPath = string.Format("{0}\\DataVersions.json", Environment.CurrentDirectory);
 
-
-            var destinyManifestVersion = new DestinyManifestVersion();
-            if (File.Exists(dataVersionsPath))
-            {
-                var jsonText = File.ReadAllText(dataVersionsPath);
-                destinyManifestVersion = JsonConvert.DeserializeObject<DestinyManifestVersion>(jsonText);
-            }
+            IFileIOService fileIOService = new FileIOService();
+            var destinyManifestVersion = fileIOService.ReadFile<DestinyManifestVersion>(dataVersionsPath);
 
             // If the Manifest has not been checked today, update it if the version is different.
             if (destinyManifestVersion?.LastChecked.Day != null && destinyManifestVersion?.LastChecked.Day != DateTime.Now.Day)
@@ -70,7 +65,7 @@ namespace Ahm.DiscordBot.Services
 
             try
             {
-                File.WriteAllText(dataVersionsPath, JsonConvert.SerializeObject(destinyManifestVersion, Formatting.Indented));
+                fileIOService.WriteFile(dataVersionsPath, destinyManifestVersion); 
             }
             catch (Exception exception)
             {

@@ -30,7 +30,6 @@ namespace Ahm.DiscordBot.Modules.RoleModules
         [Command("TitleAdd")]
         public async Task TitleAdd([Remainder] string titleWanted)
         {
-            _logger.LogInformation(titleWanted);
             LoadRoles();
             SocketGuildUser user = (SocketGuildUser)Context.User;
             if (_destinyService.HasTitle(titleWanted, user.Id))

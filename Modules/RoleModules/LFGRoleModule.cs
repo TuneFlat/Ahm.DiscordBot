@@ -1,7 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Ahm.DiscordBot.Models;
+using Ahm.DiscordBot.Preconditions;
+using Ahm.DiscordBot.Services;
 using Discord;
 using Discord.Commands;
 using Discord.Rest;
@@ -9,62 +13,66 @@ using Discord.WebSocket;
 
 namespace Ahm.DiscordBot.Modules.RoleModules
 {
+    [RequireUserOwner]
     public class LFGRoleModule : ModuleBase<SocketCommandContext>
     {
-        #region LFG 
-
         private ulong _lfgMessageId;
 
-        readonly Dictionary<Emoji, ulong> lfgEmojis = new Dictionary<Emoji, ulong>(){
-            { new Emoji("🫐"),  884290611350491136 },
-            { new Emoji("🍓"), 884290674684461066 },
-            { new Emoji("😠"), 884290705944637501 }
-        };
+        private SavedIdsModel _savedIdsModel;
+        private IFileIOService _fileIOService;
 
-        [Command("ReactLFGRoles")]
-        public async Task ReactLFGRoles()
+
+        [Command("add lfg reactions")]
+        public async Task AddLFGReactions([Remainder] ulong messageId)
         {
-            await Context.Message.DeleteAsync();
+            _lfgMessageId = messageId;
 
-            var lfgMessage = (RestUserMessage)await ReplyAsync(LFGMessageBuilder());
-            await lfgMessage.AddReactionsAsync(lfgEmojis.Select(x => x.Key).ToArray());
-            _lfgMessageId = lfgMessage.Id;
+            _fileIOService = new FileIOService();
+            GetSavedIds();
 
-            Context.Client.ReactionAdded += UserReactedToLFG;
-            Context.Client.ReactionRemoved += UserRemovedReactionToLFG;
+            var messageForRoles = (IUserMessage)await Context.Channel.GetMessageAsync(messageId);
+            await messageForRoles.AddReactionsAsync(_savedIdsModel.lfgRoleProperties.LFGEmojis.Select(x => x.Key).ToArray());
+        }
+        private void GetSavedIds()
+        {
+            var savedIdsPath = $"{Environment.CurrentDirectory}\\SavedIds.json";
+            _savedIdsModel = _fileIOService.ReadFile<SavedIdsModel>(savedIdsPath);
         }
 
-
-        private string LFGMessageBuilder()
+        [Command("update lfg reactions")]
+        public async Task UpdateLFGReactions(string emojiEmoteString, [Remainder] ulong messageId)
         {
-            var message = "LFG Roles\n";
-            var pve = new Emoji("🫐") + " PVE\n";
-            var pvp = new Emoji("🍓") + " PVP\n";
-            var trials = new Emoji("😠") + " Trials\n";
+            List<Emote> emoteList = new List<Emote>();
+            List<Emoji> emojiList = new List<Emoji>();
 
-            return message + pve + pvp + trials;
+            // This pattern captures all current emojis
+            var emojiPattern = @"(\u00a9|\u00ae|[\u2000-\u3300]|\ud83c[\ud000-\udfff]|\ud83d[\ud000-\udfff]|\ud83e[\ud000-\udfff])";
+            var emojiRegex = new Regex(emojiPattern);
+            foreach (Match match in emojiRegex.Matches(emojiEmoteString))
+            {
+                if (match.Value == string.Empty) continue;
+                emojiList.Add(new Emoji(match.Value));
+                emojiEmoteString = emojiEmoteString.Replace(match.Value, "");
+            }
+            await Context.Message.AddReactionsAsync(emojiList.ToArray());
+
+            // This patter is for custom Emojis, labeled as Emotes. 
+            // The string looks like: <Name:IdUlong>
+            var emotePattern = @"[(?=<)](.*?)[(?<=>)]";
+            var emoteRegex = new Regex(emotePattern);
+            foreach (Match match in emoteRegex.Matches(emojiEmoteString))
+            {
+                if (match.Value == string.Empty) continue;
+                if (Emote.TryParse(match.Value, out var emoteValue))
+                {
+                    emoteList.Add(emoteValue);
+                }
+            }
+
+            await Context.Message.AddReactionsAsync(emoteList.ToArray());
         }
-
-        public async Task UserReactedToLFG(Cacheable<IUserMessage, ulong> userMessage, ISocketMessageChannel channel, SocketReaction reaction)
-        {
-            SocketGuildUser user = (SocketGuildUser)reaction.User;
-
-            if (!user.IsBot && userMessage.Id == _lfgMessageId)
-                await user.AddRoleAsync(lfgEmojis[(Emoji)reaction.Emote]);
-        }
-
-        public async Task UserRemovedReactionToLFG(Cacheable<IUserMessage, ulong> userMessage, ISocketMessageChannel channel, SocketReaction reaction)
-        {
-            SocketGuildUser user = (SocketGuildUser)reaction.User;
-
-            if (!user.IsBot && userMessage.Id == _lfgMessageId)
-                await user.RemoveRoleAsync(lfgEmojis[(Emoji)reaction.Emote]);
-        }
-
-        #endregion
-
-
-
 
     }
 }
+// TODO: write to SavedIdsJson when changing lfg message/emojis
+

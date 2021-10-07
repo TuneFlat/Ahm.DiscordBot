@@ -14,6 +14,7 @@ using System.Runtime.InteropServices;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using NLog;
+using Ahm.DiscordBot.Event_Handlers;
 
 namespace Ahm.DiscordBot
 {
@@ -54,6 +55,9 @@ namespace Ahm.DiscordBot
             ConfigureLogging();
 
             await RegisterCommandsAsync();
+
+            HandleReactionAddedAsync();
+
             await _client.LoginAsync(TokenType.Bot, _configuration["Discord:ApiToken"]);
             await _client.StartAsync();
             await Task.Delay(-1);
@@ -83,9 +87,11 @@ namespace Ahm.DiscordBot
                 .AddSingleton(mapper)
                 .AddSingleton(_commands)
                 .AddSingleton(_configuration)
+                .AddSingleton<IFileIOService, FileIOService>()
                 .AddSingleton<IDestinyService, DestinyService>()
                 .AddSingleton<IAccountConnectionsService, AccountConnectionsService>()
                 .AddSingleton<IDestinyManifestService, DestinyManifestService>()
+                //.AddSingleton<IFileIOService, FileIOService>()
                 .AddLogging(builder =>
                 {
                     builder.ClearProviders();
@@ -111,9 +117,8 @@ namespace Ahm.DiscordBot
         {
             var message = arg as SocketUserMessage;
             var context = new SocketCommandContext(_client, message);
-            _logger.LogInformation(message.ToString());
             int argPos = 0;
-            if (message.HasStringPrefix("~", ref argPos))
+            if (message.HasStringPrefix("Ahm, ", ref argPos))
             {
                 var result = await _commands.ExecuteAsync(context, argPos, _services);
                 if (!result.IsSuccess)
@@ -122,6 +127,12 @@ namespace Ahm.DiscordBot
                     _ = Task.Delay(TimeSpan.FromSeconds(5)).ContinueWith(task => errorResponse.DeleteAsync());
                 }
             }
+        } 
+        
+        private void HandleReactionAddedAsync()
+        {
+            new ReactionAddedHandler(_client, _services.GetService<IFileIOService>());
+            new ReactionRemovedHandler(_client, _services.GetService<IFileIOService>());
         }
     }
 }
