@@ -1,9 +1,11 @@
 ﻿using System.Threading.Tasks;
+using Ahm.DiscordBot.Preconditions;
 using Discord;
 using Discord.Commands;
 
 namespace Ahm.DiscordBot.Modules.DestinyModules
 {
+    [RequireUserOwner]
     public class LinkBungieDiscordModule : ModuleBase<SocketCommandContext>
     {
         [Command("link")]

@@ -26,10 +26,13 @@ namespace Ahm.DiscordBot.Modules.RoleModules
             _logger = logger;
         }
 
-        // Adds a title if the user has it in game
+        
         [Command("TitleAdd")]
+        [Alias("Title Add", "title add")]
+        [Summary("Checks if the user has the title unlocked in Destiny 2 and gives the role associated with it.")]
         public async Task TitleAdd([Remainder] string titleWanted)
         {
+            // TODO: send response for if title does not exist (spelling error)
             LoadRoles();
             SocketGuildUser user = (SocketGuildUser)Context.User;
             if (_destinyService.HasTitle(titleWanted, user.Id))
@@ -39,13 +42,15 @@ namespace Ahm.DiscordBot.Modules.RoleModules
             }
             else
             {
-                var noTitleMessage = await Context.Channel.SendMessageAsync(string.Format("{0} not unlocked for {1}",titleWanted, user.Mention));
+                var noTitleMessage = await Context.Channel.SendMessageAsync(string.Format("{0} not unlocked for {1}", titleWanted, user.Mention));
                 _ = Task.Delay(TimeSpan.FromSeconds(5)).ContinueWith(task => noTitleMessage.DeleteAsync());
             }
+            _ = Task.Delay(TimeSpan.FromSeconds(5)).ContinueWith(task => Context.Message.DeleteAsync());
         }
 
-        // Removes a role from the user.
         [Command("TitleRemove")]
+        [Alias("Title Remove", "title remove")]
+        [Summary("Removes the title role from the user.")]
         public async Task TitleRemove([Remainder] string titleWanted)
         {
             LoadRoles();
@@ -55,8 +60,10 @@ namespace Ahm.DiscordBot.Modules.RoleModules
             else
             {
                 var noTitleMessage = await Context.Channel.SendMessageAsync(string.Format("{0} does not exist", titleWanted));
-                _ = Task.Delay(TimeSpan.FromSeconds(10)).ContinueWith(task => noTitleMessage.DeleteAsync());
+                _ = Task.Delay(TimeSpan.FromSeconds(5)).ContinueWith(task => noTitleMessage.DeleteAsync());
             }
+            _ = Task.Delay(TimeSpan.FromSeconds(5)).ContinueWith(task => Context.Message.DeleteAsync());
+
         }
 
         /*
@@ -66,6 +73,8 @@ namespace Ahm.DiscordBot.Modules.RoleModules
          */
 
         //[Command("TitleAddAll")]
+        //[Alias("add all titles", "Title Add All")]
+        //[Summary("Checks the users progress on every title and gives roles for the titles unlocked.")]
         //public async Task TitleAddAll()
         //{
         //    LoadRoles();
@@ -76,6 +85,8 @@ namespace Ahm.DiscordBot.Modules.RoleModules
         //}
 
         //[Command("TitleRemoveAll")]
+        //[Alias("remove all titles", "Title Remove All")]
+        //[Summary("Removes all title roles from the user.")]
         //public async Task TitleRemoveAll()
         //{
         //    LoadRoles();
@@ -83,11 +94,9 @@ namespace Ahm.DiscordBot.Modules.RoleModules
         //    var rolesToRemove = _roleNames.Select(x => x.Value).ToList();
         //    await user.RemoveRolesAsync(rolesToRemove);
         //}
-
-        // TODO: move this into it's own class
+       
         public void LoadRoles()
         {
-            // Position is top = 53 | bottom = 1
             var guild = Context.Guild;
             var roles = guild.Roles;
             List<string> roleNames = new List<string>();
@@ -100,9 +109,8 @@ namespace Ahm.DiscordBot.Modules.RoleModules
                 if (roleNames.Contains(role.Name.ToLower()))
                     _roleNames.Add(role.Name.ToLower(), role.Id);
             }
-        }       
+        }
 
-        // TODO: Move into own class. This is getting out of hand!
         public List<ulong> GetTitleUlongs(List<string> userTitleHashes)
         {
             List<ulong> titleNames = new List<ulong>();
@@ -113,12 +121,11 @@ namespace Ahm.DiscordBot.Modules.RoleModules
                     if (title.Value.Contains(userTitleHash))
                     {
                         titleNames.Add(_roleNames[title.Key.ToLower()]);
-                    } 
+                    }
                 }
             }
 
             return titleNames;
         }
     }
-
 }

@@ -6,7 +6,6 @@ using System.Reflection;
 using Discord;
 using Discord.Commands;
 using System;
-using System.Linq;
 using NLog.Web;
 using NLog.Extensions.Logging;
 using Microsoft.Extensions.Logging;
@@ -14,7 +13,8 @@ using System.Runtime.InteropServices;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using NLog;
-using Ahm.DiscordBot.Event_Handlers;
+using Ahm.DiscordBot.EventHandlers;
+using Ahm.DiscordBot.TypeReaders;
 
 namespace Ahm.DiscordBot
 {
@@ -43,7 +43,6 @@ namespace Ahm.DiscordBot
             {
                 ExclusiveBulkDelete = false
             });
-
             _client.Log += LogAsync;
 
             _commands = new CommandService();
@@ -89,9 +88,9 @@ namespace Ahm.DiscordBot
                 .AddSingleton(_configuration)
                 .AddSingleton<IFileIOService, FileIOService>()
                 .AddSingleton<IDestinyService, DestinyService>()
-                .AddSingleton<IAccountConnectionsService, AccountConnectionsService>()
+                .AddSingleton<IAccountConnectionService, AccountConnectionService>()
                 .AddSingleton<IDestinyManifestService, DestinyManifestService>()
-                //.AddSingleton<IFileIOService, FileIOService>()
+                .AddSingleton<IRoleReactionService, RoleReactionService>()
                 .AddLogging(builder =>
                 {
                     builder.ClearProviders();
@@ -103,13 +102,14 @@ namespace Ahm.DiscordBot
 
         private Task LogAsync(LogMessage arg)
         {
-            _logger.LogInformation(arg.ToString());
             return Task.CompletedTask;
         }
 
         public async Task RegisterCommandsAsync()
         {
             _client.MessageReceived += HandleCommandAsync;
+            _commands.AddTypeReader(typeof(Emote), new EmoteTypeReader());
+            _commands.AddTypeReader(typeof(Emoji), new EmojiTypeReader());
             await _commands.AddModulesAsync(Assembly.GetEntryAssembly(), _services);
         }
 
@@ -123,16 +123,23 @@ namespace Ahm.DiscordBot
                 var result = await _commands.ExecuteAsync(context, argPos, _services);
                 if (!result.IsSuccess)
                 {
-                    var errorResponse = await context.Channel.SendMessageAsync(result.ErrorReason);
-                    _ = Task.Delay(TimeSpan.FromSeconds(5)).ContinueWith(task => errorResponse.DeleteAsync());
+                    // When there is an error processing a command a DM will be sent
+                    // to the bot owner.
+                    // TODO: Make this toggleable 
+                    // TODO: differentiate between user error and code error. 
+                    //      Send user error to channel, code error in DM.
+                    _logger.LogInformation(result.ErrorReason);
+                    var applicationInfo = await _client.GetApplicationInfoAsync();
+                    var botOwner = applicationInfo.Owner;
+                    await botOwner.SendMessageAsync(result.ErrorReason);
                 }
             }
-        } 
-        
+        }
+
         private void HandleReactionAddedAsync()
         {
-            new ReactionAddedHandler(_client, _services.GetService<IFileIOService>());
-            new ReactionRemovedHandler(_client, _services.GetService<IFileIOService>());
+            new ReactionAddedHandler(_client, _services.GetService<IRoleReactionService>());
+            new ReactionRemovedHandler(_client, _services.GetService<IRoleReactionService>());
         }
     }
 }

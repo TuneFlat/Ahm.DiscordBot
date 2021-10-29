@@ -5,11 +5,11 @@ using System;
 
 namespace Ahm.DiscordBot.Services
 {
-    public class AccountConnectionsService : IAccountConnectionsService
+    public class AccountConnectionService : IAccountConnectionService
     {
         private ILogger _logger;
 
-        public AccountConnectionsService(ILogger<AccountConnectionsService> logger)
+        public AccountConnectionService(ILogger<AccountConnectionService> logger)
         {
             _logger = logger;
         }

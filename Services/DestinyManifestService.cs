@@ -95,7 +95,6 @@ namespace Ahm.DiscordBot.Services
 
             var response = client.DownloadData(request);
 
-            // TODO: Test to see if property 'Copy to Output Directory' needs to be set to always on server
             try
             {
                 File.WriteAllBytes(zipManifestPath, response);

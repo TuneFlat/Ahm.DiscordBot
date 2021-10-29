@@ -15,7 +15,7 @@ namespace Ahm.DiscordBot.Services
     public class DestinyService : IDestinyService
     {
         private readonly IConfiguration _configuration;
-        private readonly IAccountConnectionsService _accountConnections;
+        private readonly IAccountConnectionService _accountConnections;
         private readonly IDestinyManifestService _destinyManifestService;
         private readonly IMapper _mapper;
 
@@ -24,7 +24,7 @@ namespace Ahm.DiscordBot.Services
         private Dictionary<string, List<string>> _titleHashes;
 
         // Instantiate the request url which will be built as the service is used
-        public DestinyService(IAccountConnectionsService accountConnections, IConfiguration configuration,
+        public DestinyService(IAccountConnectionService accountConnections, IConfiguration configuration,
             IDestinyManifestService destinyManifestService, IMapper mapper)
         {
             _configuration = configuration;
@@ -86,6 +86,7 @@ namespace Ahm.DiscordBot.Services
             var PresentationNodeDef = "DestinyPresentationNodeDefinition";
             var RecordDef = "DestinyRecordDefinition";
 
+            //TODO: document the hashes and make variables for them
             var currentSealsData = _destinyManifestService.GetDefinition(PresentationNodeDef, "616318467");
             var legacySealsData = _destinyManifestService.GetDefinition(PresentationNodeDef, "1881970629");
 

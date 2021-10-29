@@ -2,7 +2,7 @@
 
 namespace Ahm.DiscordBot.Services
 {
-    public interface IAccountConnectionsService
+    public interface IAccountConnectionService
     {
         #region Get
 

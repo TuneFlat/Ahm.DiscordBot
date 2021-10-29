@@ -1,5 +1,4 @@
 ﻿using Ahm.DiscordBot.Models;
-using Ahm.DiscordBot.TypeConverters;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -20,7 +19,10 @@ namespace Ahm.DiscordBot.Services
 
         public void WriteFile<T>(string path, T content, Formatting formattingOption = Formatting.Indented)
         {
-            File.WriteAllText(path, JsonConvert.SerializeObject(content, formattingOption));
+            JsonSerializerSettings jsonSettings = new JsonSerializerSettings();
+            jsonSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
+
+            File.WriteAllText(path, JsonConvert.SerializeObject(content, formattingOption, jsonSettings));
         }
     }
 }
